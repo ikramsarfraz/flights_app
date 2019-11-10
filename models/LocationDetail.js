@@ -23,7 +23,7 @@ LocationDetail.getAll = result => {
 // find location details by Location_Id
 LocationDetail.findById = (LocationDetailsId, result) => {
   sql.query(
-    `SELECT * FROM Location_Details WHERE Location_Id = ${LocationDetailsId}`,
+    `SELECT * FROM Location_Details WHERE Location_Id = '${LocationDetailsId}'`,
     (err, res) => {
       if (err) {
         result(err, null);

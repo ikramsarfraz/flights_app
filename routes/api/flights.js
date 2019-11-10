@@ -10,6 +10,8 @@ const CarrierDetail = require("../../models/CarrierDetail");
 const DelayDetail = require("../../models/DelayDetail");
 // Load CancellationDetail model
 const CancellationDetail = require("../../models/CancellationDetail");
+// Load LocationDetail model
+const LocationDetail = require("../../models/LocationDetail");
 
 // @route GET api/flights/flightStatus/
 // @desc get all flight statuses
@@ -158,14 +160,15 @@ router.get("/cancellationDetail", (req, res) => {
     if (err)
       res.status(500).send({
         message:
-          err.message || "Some error occurred while retrieving delay details."
+          err.message ||
+          "Some error occurred while retrieving cancellation details."
       });
     else res.send(data);
   });
 });
 
 // @route GET api/flights/cancellationDetail/:cancellationDetailId
-// @desc Retrieve a single flights' cancellation details with cancellationDetailId
+// @desc Retrieve a single cancellations' details with cancellationDetailId
 // @access Public
 router.get("/cancellationDetail/:cancellationDetailId", (req, res) => {
   CancellationDetail.findById(req.params.cancellationDetailId, (err, data) => {
@@ -179,6 +182,42 @@ router.get("/cancellationDetail/:cancellationDetailId", (req, res) => {
           message:
             "Error retrieving cancellationDetailId with id " +
             req.params.cancellationDetailId
+        });
+      }
+    } else res.send(data);
+  });
+});
+
+// @route GET api/flights/locationDetail/
+// @desc get all location details
+// @access Public
+router.get("/locationDetail", (req, res) => {
+  LocationDetail.getAll((err, data) => {
+    if (err)
+      res.status(500).send({
+        message:
+          err.message ||
+          "Some error occurred while retrieving location details."
+      });
+    else res.send(data);
+  });
+});
+
+// @route GET api/flights/locationDetail/:locationDetailId
+// @desc Retrieve a single locations' details with locationDetailId
+// @access Public
+router.get("/locationDetail/:locationDetailId", (req, res) => {
+  LocationDetail.findById(req.params.locationDetailId, (err, data) => {
+    if (err) {
+      if (err.kind === "not_found") {
+        res.status(404).send({
+          message: `Not found locationDetailId with id ${req.params.locationDetailId}.`
+        });
+      } else {
+        res.status(500).send({
+          message:
+            "Error retrieving locationDetailId with id " +
+            req.params.locationDetailId
         });
       }
     } else res.send(data);
