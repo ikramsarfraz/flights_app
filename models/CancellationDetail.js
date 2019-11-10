@@ -6,7 +6,7 @@ const CancellationDetail = function(cancellationDetail) {
   this.Cancellation_Reason = cancellationDetail.Cancellation_Reason;
 };
 
-//find all carrier details
+//find all cancellation details
 CancellationDetail.getAll = result => {
   sql.query("SELECT * FROM Cancellation_Details LIMIT 1000", (err, res) => {
     if (err) {
@@ -18,7 +18,7 @@ CancellationDetail.getAll = result => {
   });
 };
 
-// find flight details by Flight_Details_Id
+// find cancellation details by Cancellation_Id
 CancellationDetail.findById = (CancellationDetailsId, result) => {
   sql.query(
     `SELECT * FROM Cancellation_Details WHERE Cancellation_Id = ${CancellationDetailsId}`,

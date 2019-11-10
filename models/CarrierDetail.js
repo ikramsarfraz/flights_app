@@ -18,7 +18,7 @@ CarrierDetail.getAll = result => {
   });
 };
 
-// find flight details by Flight_Details_Id
+// find carrier details by Carrier_Id
 CarrierDetail.findById = (CarrierId, result) => {
   sql.query(
     `SELECT * FROM Carrier_Details WHERE Carrier_Id = '${CarrierId}'`,

@@ -12,7 +12,7 @@ const DelayDetail = function(delayDetail) {
   this.Late_Aircraft_Delay = delayDetail.Late_Aircraft_Delay;
 };
 
-//find all carrier details
+//find all delay details
 DelayDetail.getAll = result => {
   sql.query("SELECT * FROM Delay_Details LIMIT 1000", (err, res) => {
     if (err) {
@@ -24,7 +24,7 @@ DelayDetail.getAll = result => {
   });
 };
 
-// find flight details by Flight_Details_Id
+// find delay details by Delay_Details_ID
 DelayDetail.findById = (DelayDetailsId, result) => {
   sql.query(
     `SELECT * FROM Delay_Details WHERE Delay_Details_ID = ${DelayDetailsId}`,
