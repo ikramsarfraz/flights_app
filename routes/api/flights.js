@@ -8,6 +8,8 @@ const FlightDetail = require("../../models/FlightDetail");
 const CarrierDetail = require("../../models/CarrierDetail");
 // Load DelayDetail model
 const DelayDetail = require("../../models/DelayDetail");
+// Load CancellationDetail model
+const CancellationDetail = require("../../models/CancellationDetail");
 
 // @route GET api/flights/flightStatus/
 // @desc get all flight statuses
@@ -142,6 +144,41 @@ router.get("/delayDetail/:delayDetailId", (req, res) => {
         res.status(500).send({
           message:
             "Error retrieving delayDetailId with id " + req.params.delayDetailId
+        });
+      }
+    } else res.send(data);
+  });
+});
+
+// @route GET api/flights/cancellationDetail/
+// @desc get all cancellation details
+// @access Public
+router.get("/cancellationDetail", (req, res) => {
+  CancellationDetail.getAll((err, data) => {
+    if (err)
+      res.status(500).send({
+        message:
+          err.message || "Some error occurred while retrieving delay details."
+      });
+    else res.send(data);
+  });
+});
+
+// @route GET api/flights/cancellationDetail/:cancellationDetailId
+// @desc Retrieve a single flights' cancellation details with cancellationDetailId
+// @access Public
+router.get("/cancellationDetail/:cancellationDetailId", (req, res) => {
+  CancellationDetail.findById(req.params.cancellationDetailId, (err, data) => {
+    if (err) {
+      if (err.kind === "not_found") {
+        res.status(404).send({
+          message: `Not found cancellationDetailId with id ${req.params.cancellationDetailId}.`
+        });
+      } else {
+        res.status(500).send({
+          message:
+            "Error retrieving cancellationDetailId with id " +
+            req.params.cancellationDetailId
         });
       }
     } else res.send(data);
