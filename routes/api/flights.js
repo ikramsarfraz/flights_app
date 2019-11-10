@@ -6,6 +6,8 @@ const FlightStatus = require("../../models/FlightStatus");
 const FlightDetail = require("../../models/FlightDetail");
 // Load CarrierDetail model
 const CarrierDetail = require("../../models/CarrierDetail");
+// Load DelayDetail model
+const DelayDetail = require("../../models/DelayDetail");
 
 // @route GET api/flights/flightStatus/
 // @desc get all flight statuses
@@ -95,7 +97,6 @@ router.get("/carrierDetail", (req, res) => {
 // @desc Retrieve a single carriers' details with carrierDetailId
 // @access Public
 router.get("/carrierDetail/:carrierDetailId", (req, res) => {
-  console.log(req.params);
   CarrierDetail.findById(req.params.carrierDetailId, (err, data) => {
     if (err) {
       if (err.kind === "not_found") {
@@ -107,6 +108,40 @@ router.get("/carrierDetail/:carrierDetailId", (req, res) => {
           message:
             "Error retrieving carrierDetailId with id " +
             req.params.carrierDetailId
+        });
+      }
+    } else res.send(data);
+  });
+});
+
+// @route GET api/flights/delayDetail/
+// @desc get all delay details
+// @access Public
+router.get("/delayDetail", (req, res) => {
+  DelayDetail.getAll((err, data) => {
+    if (err)
+      res.status(500).send({
+        message:
+          err.message || "Some error occurred while retrieving delay details."
+      });
+    else res.send(data);
+  });
+});
+
+// @route GET api/flights/delayDetail/:delayDetailId
+// @desc Retrieve a single flights' delay details with delayDetailId
+// @access Public
+router.get("/delayDetail/:delayDetailId", (req, res) => {
+  DelayDetail.findById(req.params.delayDetailId, (err, data) => {
+    if (err) {
+      if (err.kind === "not_found") {
+        res.status(404).send({
+          message: `Not found delayDetailId with id ${req.params.delayDetailId}.`
+        });
+      } else {
+        res.status(500).send({
+          message:
+            "Error retrieving delayDetailId with id " + req.params.delayDetailId
         });
       }
     } else res.send(data);
