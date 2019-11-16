@@ -1,5 +1,4 @@
 import React, { Component } from "react";
-import clsx from "clsx";
 import PropTypes from "prop-types";
 import { connect } from "react-redux";
 import { logoutUser } from "../../actions/authActions";
@@ -12,7 +11,10 @@ import TableHead from "@material-ui/core/TableHead";
 import TablePagination from "@material-ui/core/TablePagination";
 import TableRow from "@material-ui/core/TableRow";
 import CircularProgress from "@material-ui/core/CircularProgress";
-import Button from "@material-ui/core/Button";
+import Radio from "@material-ui/core/Radio";
+
+import Autosuggest from "react-autosuggest";
+
 const columns = [
   { id: "Carrier_Name", label: "Carrier_Name", minWidth: 50 },
   { id: "Origin_Id", label: "Origin_Id", minWidth: 50 },
@@ -20,19 +22,63 @@ const columns = [
   { id: "Distance", label: "Distance", minWidth: 50 },
   { id: "Delay_Prob", label: "Chance of Delay %", minWidth: 50 }
 ];
+let locations = [];
+
+// https://developer.mozilla.org/en/docs/Web/JavaScript/Guide/Regular_Expressions#Using_Special_Characters
+function escapeRegexCharacters(str) {
+  return str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function getSuggestions(value) {
+  const escapedValue = escapeRegexCharacters(value.trim());
+
+  if (escapedValue === "") {
+    return [];
+  }
+
+  const regex = new RegExp("^" + escapedValue, "i");
+
+  return locations.filter(location => regex.test(location.City));
+}
+
+function getSuggestionValue(suggestion) {
+  return `${suggestion.Airport_Name} - ${suggestion.City}`;
+}
+
+function renderSuggestion(suggestion) {
+  return (
+    <span>
+      {suggestion.Airport_Name} - {suggestion.City}
+    </span>
+  );
+}
+
+function getCity(words) {
+  return words.split(" - ")[1];
+}
 
 class Dashboard extends Component {
   constructor() {
     super();
     this.state = {
       origin: "",
+      originSet: false,
+      originCity: "",
       destination: "",
+      destinationCity: "",
       flightStatus: [],
       page: 0,
       rowsPerPage: 10,
       dataLoading: false,
-      dataSuccess: false
+      dataSuccess: false,
+      selectedValue: "",
+      valueSuggestion: "",
+      suggestions: [],
+      isLoading: false,
+      startingDestination: true
     };
+
+    this.lastRequestId = null;
   }
 
   handleChangePage = (event, newPage) => {
@@ -45,8 +91,26 @@ class Dashboard extends Component {
     this.setState({ page: 0 });
   };
 
-  onDataClick = userData => {
-    //e.preventDefault();
+  handleChange = event => {
+    event.preventDefault();
+    console.log(event.currentTarget.getAttribute("data-index"));
+    this.setState({
+      selectedValue: event.currentTarget.getAttribute("data-index")
+    });
+  };
+
+  onChange = e => {
+    this.setState({ [e.target.id]: e.target.value });
+  };
+  onSubmit = e => {
+    e.preventDefault();
+    this.setState({ dataLoading: true });
+    const userData = {
+      origin: getCity(this.state.origin),
+      destination: getCity(this.state.destination)
+    };
+    console.log(userData);
+
     axios
       .post("/api/flights/flight", userData)
       .then(res => {
@@ -58,23 +122,88 @@ class Dashboard extends Component {
       }) // re-direct to login on successful register
       .catch(err => console.log(err));
   };
-  onChange = e => {
-    this.setState({ [e.target.id]: e.target.value });
-  };
-  onSubmit = e => {
+  resetForm = e => {
     e.preventDefault();
-    this.setState({ dataLoading: true });
-    const userData = {
-      origin: this.state.origin,
-      destination: this.state.destination
-    };
-    console.log(userData);
-    this.onDataClick(userData);
-    //this.props.loginUser(userData); // since we handle the redirect within our component, we don't need to pass in this.props.history as a parameter
+    this.setState({ origin: "", destination: "", dataSuccess: false });
   };
+  // auto suggest
+
+  getPossibleOrigins = e => {
+    e.preventDefault();
+    if (this.state.destination) {
+      axios
+        .get("/api/flights/origin/" + getCity(this.state.destination))
+        .then(res => {
+          locations = res.data;
+          console.log(locations);
+        }) // re-direct to login on successful register
+        .catch(err => console.log(err));
+    }
+  };
+  getPossibleDestinations = e => {
+    e.preventDefault();
+    if (this.state.origin) {
+      axios
+        .get("/api/flights/origin/" + getCity(this.state.origin))
+        .then(res => {
+          locations = res.data;
+          console.log(res.data);
+        }) // re-direct to login on successful register
+        .catch(err => console.log(err));
+      this.setState({
+        startingDestination: false
+      });
+    }
+  };
+
+  onOriginChange = (event, { newValue }) => {
+    this.setState({
+      origin: newValue
+    });
+  };
+
+  onDestinationChange = (event, { newValue }) => {
+    this.setState({
+      destination: newValue
+    });
+  };
+
+  onSuggestionsFetchRequested = ({ value }) => {
+    this.setState({
+      suggestions: getSuggestions(value)
+    });
+  };
+
+  onSuggestionsClearRequested = () => {
+    this.setState({
+      suggestions: []
+    });
+  };
+
+  componentDidMount() {
+    axios
+      .get("/api/flights/locationDetail")
+      .then(res => {
+        locations = res.data;
+        console.log(locations);
+      }) // re-direct to login on successful register
+      .catch(err => console.log(err));
+  }
 
   render() {
     const { user } = this.props.auth;
+    const inputOriginProps = {
+      placeholder: "Origin",
+      value: this.state.origin,
+      onChange: this.onOriginChange
+    };
+
+    const inputDestinationProps = {
+      placeholder: "Destination",
+      value: this.state.destination,
+      onChange: this.onDestinationChange
+    };
+
     return (
       <div className="container ">
         <div className="row">
@@ -87,47 +216,53 @@ class Dashboard extends Component {
             </h4>
           </div>
           <div className="col s12 center-align">
-            {" "}
             <form noValidate onSubmit={this.onSubmit}>
-              <div className="input-field col s12">
-                <input
-                  onChange={this.onChange}
-                  value={this.state.origin}
-                  id="origin"
-                  type="text"
+              <div
+                onClick={this.getPossibleOrigins}
+                className="input-field col s6"
+              >
+                <Autosuggest
+                  suggestions={this.state.suggestions}
+                  onSuggestionsFetchRequested={this.onSuggestionsFetchRequested}
+                  onSuggestionsClearRequested={this.onSuggestionsClearRequested}
+                  getSuggestionValue={getSuggestionValue}
+                  renderSuggestion={renderSuggestion}
+                  inputProps={inputOriginProps}
                 />
-                <label htmlFor="origin">Origin</label>
-              </div>
-              <div className="input-field col s12">
-                <input
-                  onChange={this.onChange}
-                  value={this.state.destination}
-                  id="destination"
-                  type="text"
-                />
-                <label htmlFor="destination">Destination</label>
               </div>
               <div
-                className="col s12 center-align"
+                onClick={this.getPossibleDestinations}
+                className="input-field col s6"
+              >
+                <Autosuggest
+                  suggestions={this.state.suggestions}
+                  onSuggestionsFetchRequested={this.onSuggestionsFetchRequested}
+                  onSuggestionsClearRequested={this.onSuggestionsClearRequested}
+                  getSuggestionValue={getSuggestionValue}
+                  renderSuggestion={renderSuggestion}
+                  inputProps={inputDestinationProps}
+                />
+              </div>
+
+              <div
+                className="col s6 center-align"
                 style={{ paddingLeft: "11.250px", position: "relative" }}
               >
-                {/* <Button
-                  variant="contained"
-                  color="primary"
-                  disabled={this.state.dataLoading}
-                  type="submit"
-                >
-                  Search
-                </Button> */}
                 <button
                   style={{
                     width: "150px",
                     borderRadius: "3px",
                     letterSpacing: "1.5px"
                   }}
-                  disabled={this.state.dataLoading}
+                  disabled={
+                    this.state.dataLoading ||
+                    !this.state.origin ||
+                    !this.state.destination
+                      ? true
+                      : false
+                  }
                   type="submit"
-                  className="btn btn-large waves-effect waves-light hoverable blue accent-3"
+                  className="btn btn-large outline waves-effect waves-light hoverable blue accent-3"
                 >
                   Search
                 </button>
@@ -135,7 +270,7 @@ class Dashboard extends Component {
                   <CircularProgress
                     size={24}
                     style={{
-                      color: "#333",
+                      color: "#000",
                       position: "absolute",
                       top: "50%",
                       left: "50%",
@@ -145,6 +280,25 @@ class Dashboard extends Component {
                     }}
                   />
                 )}
+              </div>
+              <div className="col s6 center-align">
+                <button
+                  style={{
+                    width: "150px",
+                    borderRadius: "3px",
+                    letterSpacing: "1.5px"
+                  }}
+                  disabled={
+                    this.state.dataLoading ||
+                    (!this.state.origin && !this.state.destination)
+                      ? true
+                      : false
+                  }
+                  onClick={this.resetForm}
+                  className="btn btn-large outline waves-effect waves-light hoverable red accent-3"
+                >
+                  Reset
+                </button>
               </div>
             </form>
           </div>
@@ -157,6 +311,10 @@ class Dashboard extends Component {
                   <Table stickyHeader aria-label="sticky table">
                     <TableHead>
                       <TableRow>
+                        <TableCell
+                          key="radio"
+                          style={{ minWidth: 20 }}
+                        ></TableCell>
                         {columns.map(column => (
                           <TableCell
                             key={column.id}
@@ -181,8 +339,20 @@ class Dashboard extends Component {
                               hover
                               role="checkbox"
                               tabIndex={-1}
-                              key={carrier.FLIGHT_ID}
+                              key={carrier.Flight_Carrier_Id}
                             >
+                              <TableCell padding="checkbox">
+                                <Radio
+                                  checked={
+                                    this.state.selectedValue ===
+                                    carrier.Flight_Carrier_Id
+                                  }
+                                  onClick={this.handleChange}
+                                  data-index={carrier.Flight_Carrier_Id}
+                                  value={carrier.Flight_Carrier_Id}
+                                  name="radio-button-demo"
+                                />
+                              </TableCell>
                               {columns.map(column => {
                                 const value = carrier[column.id];
                                 return (

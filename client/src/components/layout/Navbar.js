@@ -35,7 +35,7 @@ class Navbar extends Component {
                   float: "right"
                 }}
                 onClick={this.onLogoutClick}
-                className="btn btn-large btn-flat waves-effect white red-text"
+                className="btn btn-large btn-flat waves-effect hoverable white red-text"
               >
                 Logout
               </button>

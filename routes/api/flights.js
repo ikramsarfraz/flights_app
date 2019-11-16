@@ -280,4 +280,70 @@ router.post("/flight", (req, res1) => {
   );
 });
 
+// @route GET api/flights/locationDetail/:locationDetailId
+// @desc Retrieve a single locations' details with locationDetailId
+// @access Public
+router.get("/origin/:cityName", (req, res1) => {
+  sql.query(
+    ` SELECT flight_details.Flight_Id as FLIGHT_ID, flight_details.Flight_Number,carrier_details.Carrier_Name,  flight_details.Carrier_Id AS Flight_Carrier_Id, flight_details.Origin_Id,flight_details.Destination_Id, location_details.City, location_details.Airport_Name,flight_details.Distance, flight_status.Delayed
+    FROM flight_details, flight_status, carrier_details, location_details
+    WHERE flight_details.Flight_Id = flight_status.Flight_Id
+    AND flight_details.Carrier_Id = carrier_details.Carrier_Id
+    AND location_details.Location_Id = flight_details.Destination_Id
+    AND flight_details.Origin_Id IN
+    (SELECT location_details.Location_Id 
+    FROM location_details
+    WHERE location_details.City = '${req.params.cityName}')
+    group by flight_details.Destination_Id`,
+    (err, res2) => {
+      if (err) {
+        return res1.status(500).send({
+          message: "Error retrieving origin with id " + req.params.cityName
+        });
+      }
+
+      if (res2.length) {
+        return res1.send(res2);
+      }
+
+      return res1.status(404).send({
+        message: `Not found origin with id ${req.params.cityName}.`
+      });
+    }
+  );
+});
+
+// @route GET api/flights/locationDetail/:locationDetailId
+// @desc Retrieve a single locations' details with locationDetailId
+// @access Public
+router.get("/destination/:cityName", (req, res1) => {
+  sql.query(
+    ` SELECT flight_details.Flight_Id as FLIGHT_ID, flight_details.Flight_Number,carrier_details.Carrier_Name,  flight_details.Carrier_Id AS Flight_Carrier_Id, flight_details.Origin_Id,flight_details.Destination_Id, location_details.City, location_details.Airport_Name,flight_details.Distance, flight_status.Delayed
+    FROM flight_details, flight_status, carrier_details, location_details
+    WHERE flight_details.Flight_Id = flight_status.Flight_Id
+    AND flight_details.Carrier_Id = carrier_details.Carrier_Id
+    AND location_details.Location_Id = flight_details.Origin_Id
+    AND flight_details.Destination_Id IN
+    (SELECT location_details.Location_Id 
+    FROM location_details
+    WHERE location_details.City = '${req.params.cityName}')
+    group by flight_details.Destination_Id`,
+    (err, res2) => {
+      if (err) {
+        return res1.status(500).send({
+          message: "Error retrieving origin with id " + req.params.cityName
+        });
+      }
+
+      if (res2.length) {
+        return res1.send(res2);
+      }
+
+      return res1.status(404).send({
+        message: `Not found origin with id ${req.params.cityName}.`
+      });
+    }
+  );
+});
+
 module.exports = router;
