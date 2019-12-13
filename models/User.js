@@ -9,7 +9,7 @@ const User = function(user) {
 };
 //Create a user
 User.create = (newUser, result) => {
-  sql.query("INSERT INTO users SET ?", newUser, (err, res) => {
+  sql.query("INSERT INTO user SET ?", newUser, (err, res) => {
     if (err) {
       console.log("error: ", err);
       result(err, null);
@@ -22,7 +22,7 @@ User.create = (newUser, result) => {
 };
 //Find user by email
 User.findByEmail = (userEmail, result) => {
-  sql.query(`SELECT * FROM users WHERE email = '${userEmail}'`, (err, res) => {
+  sql.query(`SELECT * FROM user WHERE email = '${userEmail}'`, (err, res) => {
     if (err) {
       console.log("error: ", err);
       result(err, null);
@@ -41,7 +41,7 @@ User.findByEmail = (userEmail, result) => {
 };
 
 User.findById = (userId, result) => {
-  sql.query(`SELECT * FROM users WHERE id = ${userId}`, (err, res) => {
+  sql.query(`SELECT * FROM user WHERE id = ${userId}`, (err, res) => {
     if (err) {
       console.log("error: ", err);
       result(err, null);

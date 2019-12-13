@@ -229,9 +229,8 @@ router.get("/locationDetail/:locationDetailId", (req, res) => {
 // @desc Retrieve a single locations' details with locationDetailId
 // @access Public
 router.post("/flight", (req, res1) => {
-  console.log(req.body.origin);
   sql.query(
-    `SELECT q1.*, ((q2.Carrier_Delay_Count * 100)/q1.Carrier_Count) AS Delay_Prob
+    `SELECT q1.*, ((q2.Carrier_Delay_Count * 100)/q1.Carrier_Count) AS Delay_Prob, q2.NUMBER_CARRIER_DELAYS, q2.NUMBER_WEATHER_DELAYS, q2.NUMBER_NAS_DELAYS, q2.NUMBER_SECURITY_DELAYS, q2.NUMBER_LATE_AIRCRAFT_DELAYS
     FROM
     (SELECT flight_details.Flight_Id as FLIGHT_ID, flight_details.Flight_Number,carrier_details.Carrier_Name,  flight_details.Carrier_Id AS Flight_Carrier_Id, flight_details.Origin_Id,flight_details.Destination_Id, flight_details.Distance, flight_status.Delayed, COUNT(flight_details.Carrier_Id) as Carrier_Count
     FROM flight_details, flight_status, carrier_details
@@ -240,26 +239,32 @@ router.post("/flight", (req, res1) => {
     AND flight_details.Origin_Id IN
     (SELECT location_details.Location_Id 
     FROM location_details
-    WHERE location_details.City = '${req.body.origin}')
+    WHERE location_details.Location_Id = '${req.body.origin}')
     AND flight_details.Destination_Id IN
     (SELECT location_details.Location_Id 
     FROM location_details
-    WHERE location_details.City = '${req.body.destination}')
+    WHERE location_details.Location_Id = '${req.body.destination}')
     GROUP BY Flight_Carrier_Id) q1
     INNER JOIN
-    (SELECT flight_details.Flight_Id as FLIGHT_ID, flight_details.Flight_Number,carrier_details.Carrier_Name,  flight_details.Carrier_Id AS Flight_Carrier_Id, flight_details.Origin_Id,flight_details.Destination_Id, flight_details.Distance, flight_status.Delayed, COUNT(flight_details.Carrier_Id) as Carrier_Delay_Count
-    FROM flight_details, flight_status, carrier_details
+    (SELECT flight_details.Flight_Id as FLIGHT_ID, flight_details.Flight_Number,carrier_details.Carrier_Name,  flight_details.Carrier_Id AS Flight_Carrier_Id, flight_details.Origin_Id,flight_details.Destination_Id, flight_details.Distance, flight_status.Delayed, COUNT(flight_details.Carrier_Id) as Carrier_Delay_Count,
+	SUM(if(Delay_Details.Carrier_Delay > 0, 1, 0)) AS NUMBER_CARRIER_DELAYS, 
+	SUM(if(Delay_Details.Weather_Delay > 0, 1, 0)) AS NUMBER_WEATHER_DELAYS,
+	SUM(if(Delay_Details.Nas_Delay > 0, 1, 0)) AS NUMBER_NAS_DELAYS,
+	SUM(if(Delay_Details.Security_Delay > 0, 1, 0)) AS NUMBER_SECURITY_DELAYS,
+	SUM(if(Delay_Details.Late_Aircraft_Delay > 0, 1, 0)) AS NUMBER_LATE_AIRCRAFT_DELAYS
+    FROM flight_details, flight_status, carrier_details, delay_details
     WHERE flight_details.Flight_Id = flight_status.Flight_Id
     AND flight_details.Carrier_Id = carrier_details.Carrier_Id
+    AND flight_status.Flight_Status_Id = delay_details.FS_ID
     AND flight_details.Origin_Id IN
     (SELECT location_details.Location_Id 
     FROM location_details
-    WHERE location_details.City = '${req.body.origin}')
+    WHERE location_details.Location_Id = '${req.body.origin}')
     AND flight_details.Destination_Id IN
     (SELECT location_details.Location_Id 
     FROM location_details
-    WHERE location_details.City = '${req.body.destination}')
-    AND flight_status.Delayed = 'yes'
+    WHERE location_details.Location_Id = '${req.body.destination}')
+    AND flight_status.Delayed = 'yes\r'
     GROUP BY Flight_Carrier_Id) q2
     ON q1.Flight_Carrier_Id = q2.Flight_Carrier_Id`,
     (err, res2) => {
@@ -283,7 +288,81 @@ router.post("/flight", (req, res1) => {
 // @route GET api/flights/locationDetail/:locationDetailId
 // @desc Retrieve a single locations' details with locationDetailId
 // @access Public
-router.get("/origin/:cityName", (req, res1) => {
+router.post("/monthDelays", (req, res1) => {
+  sql.query(
+    `SELECT  flight_details.Origin_Id,flight_details.Destination_Id,   COUNT(flight_details.Carrier_Id) as Carrier_Delay_Count, EXTRACT( YEAR_MONTH FROM flight_status.Date ) AS delayMonth
+    FROM flight_details, flight_status
+    WHERE flight_details.Flight_Id = flight_status.Flight_Id
+    AND flight_details.Origin_Id IN
+    (SELECT location_details.Location_Id 
+    FROM location_details
+    WHERE location_details.Location_Id = '${req.body.origin}')
+    AND flight_details.Destination_Id IN
+    (SELECT location_details.Location_Id 
+    FROM location_details
+    WHERE location_details.Location_Id = '${req.body.destination}')
+    AND flight_status.Delayed = 'yes\r'
+    GROUP BY delayMonth
+   ORDER BY delayMonth`,
+    (err, res2) => {
+      if (err) {
+        return res1.status(500).send({
+          message: "Error retrieving origin with id " + req.body.origin
+        });
+      }
+
+      if (res2.length) {
+        return res1.send(res2);
+      }
+
+      return res1.status(404).send({
+        message: `Not found origin with id ${req.body.origin}.`
+      });
+    }
+  );
+});
+
+// @route GET api/flights/locationDetail/:locationDetailId
+// @desc Retrieve a single locations' details with locationDetailId
+// @access Public
+router.post("/dayDelays", (req, res1) => {
+  sql.query(
+    `SELECT  flight_details.Origin_Id,flight_details.Destination_Id,   COUNT(flight_details.Carrier_Id) as Carrier_Delay_Count, DAYOFWEEK(  flight_status.Date ) AS delayDay
+    FROM flight_details, flight_status
+    WHERE flight_details.Flight_Id = flight_status.Flight_Id
+    AND flight_details.Origin_Id IN
+    (SELECT location_details.Location_Id 
+    FROM location_details
+    WHERE location_details.Location_Id = '${req.body.origin}')
+    AND flight_details.Destination_Id IN
+    (SELECT location_details.Location_Id 
+    FROM location_details
+    WHERE location_details.Location_Id = '${req.body.destination}')
+    AND flight_status.Delayed = 'yes\r'
+    GROUP BY delayDay
+   ORDER BY delayDay;`,
+    (err, res2) => {
+      if (err) {
+        return res1.status(500).send({
+          message: "Error retrieving origin with id " + req.body.origin
+        });
+      }
+
+      if (res2.length) {
+        return res1.send(res2);
+      }
+
+      return res1.status(404).send({
+        message: `Not found origin with id ${req.body.origin}.`
+      });
+    }
+  );
+});
+
+// @route GET api/flights/locationDetail/:locationDetailId
+// @desc Retrieve a single locations' details with locationDetailId
+// @access Public
+router.get("/origin/:cityId", (req, res1) => {
   sql.query(
     ` SELECT flight_details.Flight_Id as FLIGHT_ID, flight_details.Flight_Number,carrier_details.Carrier_Name,  flight_details.Carrier_Id AS Flight_Carrier_Id, flight_details.Origin_Id,flight_details.Destination_Id, location_details.City, location_details.Airport_Name,flight_details.Distance, flight_status.Delayed
     FROM flight_details, flight_status, carrier_details, location_details
@@ -293,12 +372,12 @@ router.get("/origin/:cityName", (req, res1) => {
     AND flight_details.Origin_Id IN
     (SELECT location_details.Location_Id 
     FROM location_details
-    WHERE location_details.City = '${req.params.cityName}')
+    WHERE location_details.Location_Id = '${req.params.cityId}')
     group by flight_details.Destination_Id`,
     (err, res2) => {
       if (err) {
         return res1.status(500).send({
-          message: "Error retrieving origin with id " + req.params.cityName
+          message: "Error retrieving origin with id " + req.params.cityId
         });
       }
 
@@ -307,7 +386,7 @@ router.get("/origin/:cityName", (req, res1) => {
       }
 
       return res1.status(404).send({
-        message: `Not found origin with id ${req.params.cityName}.`
+        message: `Not found origin with id ${req.params.cityId}.`
       });
     }
   );
@@ -316,7 +395,7 @@ router.get("/origin/:cityName", (req, res1) => {
 // @route GET api/flights/locationDetail/:locationDetailId
 // @desc Retrieve a single locations' details with locationDetailId
 // @access Public
-router.get("/destination/:cityName", (req, res1) => {
+router.get("/destination/:cityId", (req, res1) => {
   sql.query(
     ` SELECT flight_details.Flight_Id as FLIGHT_ID, flight_details.Flight_Number,carrier_details.Carrier_Name,  flight_details.Carrier_Id AS Flight_Carrier_Id, flight_details.Origin_Id,flight_details.Destination_Id, location_details.City, location_details.Airport_Name,flight_details.Distance, flight_status.Delayed
     FROM flight_details, flight_status, carrier_details, location_details
@@ -326,12 +405,12 @@ router.get("/destination/:cityName", (req, res1) => {
     AND flight_details.Destination_Id IN
     (SELECT location_details.Location_Id 
     FROM location_details
-    WHERE location_details.City = '${req.params.cityName}')
+    WHERE location_details.Location_Id = '${req.params.cityId}')
     group by flight_details.Destination_Id`,
     (err, res2) => {
       if (err) {
         return res1.status(500).send({
-          message: "Error retrieving origin with id " + req.params.cityName
+          message: "Error retrieving origin with id " + req.params.cityId
         });
       }
 
@@ -340,7 +419,7 @@ router.get("/destination/:cityName", (req, res1) => {
       }
 
       return res1.status(404).send({
-        message: `Not found origin with id ${req.params.cityName}.`
+        message: `Not found origin with id ${req.params.cityId}.`
       });
     }
   );

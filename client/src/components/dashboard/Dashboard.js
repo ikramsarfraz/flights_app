@@ -12,8 +12,14 @@ import TablePagination from "@material-ui/core/TablePagination";
 import TableRow from "@material-ui/core/TableRow";
 import CircularProgress from "@material-ui/core/CircularProgress";
 import Radio from "@material-ui/core/Radio";
-
+import Chart from "react-apexcharts";
 import Autosuggest from "react-autosuggest";
+import Card from "@material-ui/core/Card";
+import CardMedia from "@material-ui/core/CardMedia";
+
+import CardContent from "@material-ui/core/CardContent";
+
+import Typography from "@material-ui/core/Typography";
 
 const columns = [
   { id: "Carrier_Name", label: "Carrier_Name", minWidth: 50 },
@@ -42,43 +48,270 @@ function getSuggestions(value) {
 }
 
 function getSuggestionValue(suggestion) {
-  return `${suggestion.Airport_Name} - ${suggestion.City}`;
+  return `${suggestion.Airport_Name}, ${suggestion.City}`;
 }
 
 function renderSuggestion(suggestion) {
   return (
     <span>
-      {suggestion.Airport_Name} - {suggestion.City}
+      {suggestion.Airport_Name}, {suggestion.City}
     </span>
   );
 }
 
 function getCity(words) {
-  return words.split(" - ")[1];
+  const airName = words.split(", ")[0].trim();
+  const airRow = locations.filter(
+    location => location.Airport_Name.trim() === airName
+  );
+  //console.log(airName.trim());
+  console.log(airRow[0].Location_Id);
+  return airRow[0].Location_Id;
 }
+
+let colors = [
+  "#008FFB",
+  "#00E396",
+  "#FEB019",
+  "#FF4560",
+  "#775DD0",
+  "#546E7A",
+  "#26a69a",
+  "#D10CE8"
+];
 
 class Dashboard extends Component {
   constructor() {
     super();
     this.state = {
       origin: "",
-      originSet: false,
-      originCity: "",
+      prevOrigin: "",
       destination: "",
-      destinationCity: "",
       flightStatus: [],
+      monthDelays: [],
+      dayDelays: [],
       page: 0,
       rowsPerPage: 10,
       dataLoading: false,
       dataSuccess: false,
+      dataNotFound: false,
       selectedValue: "",
       valueSuggestion: "",
       suggestions: [],
       isLoading: false,
-      startingDestination: true
+      visualizeData: false,
+      options: {
+        chart: {
+          stacked: true,
+          stackType: "100%"
+        },
+        plotOptions: {
+          bar: {
+            horizontal: true
+          }
+        },
+        stroke: {
+          width: 1,
+          colors: ["#fff"]
+        },
+        title: {
+          text: "Flight Delays"
+        },
+        xaxis: {
+          categories: []
+        },
+        tooltip: {
+          y: {
+            formatter: function(val) {
+              return val;
+            }
+          }
+        },
+        fill: {
+          opacity: 1
+        },
+        legend: {
+          position: "top",
+          horizontalAlign: "left",
+          offsetX: 40
+        }
+      },
+      series: [
+        {
+          name: "Carrier Delay",
+          data: []
+        },
+        {
+          name: "Weather Delay",
+          data: []
+        },
+        {
+          name: "Nas Delay",
+          data: []
+        },
+        {
+          name: "Security Delay",
+          data: []
+        },
+        {
+          name: "Late Aircraft Delay",
+          data: []
+        }
+      ],
+
+      lineOptions: {
+        chart: {
+          zoom: {
+            enabled: false
+          }
+        },
+        dataLabels: {
+          enabled: false
+        },
+        stroke: {
+          curve: "straight"
+        },
+        title: {
+          text: "Flight Delays by Month",
+          align: "left"
+        },
+        grid: {
+          row: {
+            colors: ["#f3f3f3", "transparent"], // takes an array which will be repeated on columns
+            opacity: 0.5
+          }
+        },
+        tooltip: {
+          x: {
+            format: "MMM y"
+          }
+        },
+        fill: {
+          type: "gradient",
+          gradient: {
+            shade: "dark",
+            gradientToColors: ["#FDD835"],
+            shadeIntensity: 1,
+            type: "horizontal",
+            opacityFrom: 1,
+            opacityTo: 1,
+            stops: [0, 100, 100, 100]
+          }
+        },
+        xaxis: {
+          type: "datetime",
+          categories: [
+            "07/01/2017",
+            "08/01/2017",
+            "09/01/2017",
+            "10/01/2017",
+            "11/01/2017",
+            "12/01/2017",
+            "01/01/2018",
+            "02/01/2018",
+            "03/01/2018",
+            "04/01/2018",
+            "05/01/2018",
+            "06/01/2018",
+            "07/01/2018",
+            "08/01/2018",
+            "09/01/2018",
+            "10/01/2018",
+            "11/01/2018",
+            "12/01/2018",
+            "01/01/2019",
+            "02/01/2019",
+            "03/01/2019",
+            "04/01/2019",
+            "05/01/2019",
+            "06/01/2019",
+            "07/01/2019"
+          ]
+        },
+        markers: {
+          size: 4,
+          opacity: 0.9,
+          colors: ["#FFA41B"],
+          strokeColor: "#fff",
+          strokeWidth: 2,
+
+          hover: {
+            size: 7
+          }
+        },
+        yaxis: {
+          min: 0,
+          max: 150,
+          title: {
+            text: "Delays"
+          }
+        }
+      },
+      lineSeries: [
+        {
+          name: "",
+          data: []
+        }
+      ],
+      columnOptions: {
+        colors: colors,
+        plotOptions: {
+          bar: {
+            horizontal: false,
+            columnWidth: "45%",
+            distributed: true
+          }
+        },
+        dataLabels: {
+          enabled: false
+        },
+        stroke: {
+          show: true,
+          width: 2
+        },
+        xaxis: {
+          categories: ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"],
+          labels: {
+            style: {
+              colors: colors,
+              fontSize: "14px"
+            }
+          }
+        },
+        yaxis: {
+          title: {
+            text: "Delays"
+          }
+        },
+
+        tooltip: {
+          y: {
+            formatter: function(val) {
+              return val;
+            }
+          }
+        }
+      },
+      columnSeries: [
+        {
+          name: "",
+          data: []
+        }
+      ]
     };
 
     this.lastRequestId = null;
+    this.bull = (
+      <span
+        styles={{
+          display: "inline-block",
+          margin: "0 2px",
+          transform: "scale(0.8)"
+        }}
+      >
+        •
+      </span>
+    );
   }
 
   handleChangePage = (event, newPage) => {
@@ -93,68 +326,188 @@ class Dashboard extends Component {
 
   handleChange = event => {
     event.preventDefault();
-    console.log(event.currentTarget.getAttribute("data-index"));
+
     this.setState({
       selectedValue: event.currentTarget.getAttribute("data-index")
     });
+    // this.updateStackedBarData();
+    // this.updateLineData();
+    // this.updateColumnData();
+    // this.setState({ visualizeData: true });
+    console.log(event.currentTarget.getAttribute("data-index"));
   };
 
-  onChange = e => {
-    this.setState({ [e.target.id]: e.target.value });
-  };
+  // handle charts
+  updateStackedBarData() {
+    const newSeries = [];
+    let newData = [];
+    let newOptions = this.state.options;
+    let carriers = [];
+    for (let index = 0; index < 5; index++) {
+      for (let i = 0; i < this.state.flightStatus.length; i++) {
+        if (index === 0) {
+          newData.push(this.state.flightStatus[i].NUMBER_CARRIER_DELAYS);
+        } else if (index === 1) {
+          newData.push(this.state.flightStatus[i].NUMBER_WEATHER_DELAYS);
+        } else if (index === 2) {
+          newData.push(this.state.flightStatus[i].NUMBER_NAS_DELAYS);
+        } else if (index === 3) {
+          newData.push(this.state.flightStatus[i].NUMBER_SECURITY_DELAYS);
+        } else {
+          newData.push(this.state.flightStatus[i].NUMBER_LATE_AIRCRAFT_DELAYS);
+        }
+      }
+
+      newSeries.push({
+        name: this.state.series[index].name,
+        data: newData
+      });
+      newData = [];
+    }
+
+    this.state.flightStatus.forEach((part, index) => {
+      carriers.push(this.state.flightStatus[index].Carrier_Name);
+    });
+    newOptions.xaxis.categories = carriers;
+
+    this.setState({ series: newSeries, options: newOptions });
+  }
+
+  updateLineData() {
+    const newSeries = [];
+    let newOptions = this.state.lineOptions;
+    let newData = [];
+    let currentMonth = 201707;
+    let maxDelayCount = 0;
+    let i = 0;
+    while (i < this.state.monthDelays.length) {
+      if (this.state.monthDelays[i].delayMonth === currentMonth) {
+        newData.push(this.state.monthDelays[i].Carrier_Delay_Count);
+        if (this.state.monthDelays[i].Carrier_Delay_Count > maxDelayCount) {
+          maxDelayCount = this.state.monthDelays[i].Carrier_Delay_Count;
+        }
+        i++;
+      } else newData.push(null);
+
+      if (currentMonth === 201712) currentMonth = 201801;
+      else if (currentMonth === 201812) currentMonth = 201901;
+      else currentMonth++;
+    }
+    newSeries.push({
+      name: "Delays",
+      data: newData
+    });
+
+    newOptions.yaxis.max = maxDelayCount * 1.1;
+
+    this.setState({ lineSeries: newSeries, lineOptions: newOptions });
+  }
+
+  updateColumnData() {
+    const newSeries = [];
+    let newData = [];
+
+    for (let i = 0; i < this.state.dayDelays.length; i++) {
+      newData.push(this.state.dayDelays[i].Carrier_Delay_Count);
+    }
+    newSeries.push({
+      name: "Delays",
+      data: newData
+    });
+    this.setState({ columnSeries: newSeries });
+  }
+
+  // on clicking submit, get data for specified origin and destination
   onSubmit = e => {
     e.preventDefault();
-    this.setState({ dataLoading: true });
+
+    let flightDataLoaded = false;
+    let monthDelaysDataLoaded = false;
+    let dayDelaysDataLoaded = false;
+
+    this.setState({
+      dataLoading: true,
+      dataSuccess: false,
+      dataNotFound: false
+    });
+
     const userData = {
       origin: getCity(this.state.origin),
       destination: getCity(this.state.destination)
     };
-    console.log(userData);
 
     axios
       .post("/api/flights/flight", userData)
       .then(res => {
-        this.setState({ dataLoading: false });
-        this.setState({ dataSuccess: true });
+        this.setState({ dataLoading: false, dataSuccess: true });
         const flightStatus = res.data;
         this.setState({ flightStatus });
         console.log(res.data);
+        this.updateStackedBarData();
+        flightDataLoaded = true;
       }) // re-direct to login on successful register
-      .catch(err => console.log(err));
+      .catch(err => {
+        console.log(err.response.status === 404);
+        if (err.response.status === 404) {
+          this.setState({ dataNotFound: true });
+        }
+        this.setState({ dataLoading: false });
+      });
+
+    axios
+      .post("/api/flights/monthDelays", userData)
+      .then(res => {
+        this.setState({ dataLoading: false, dataSuccess: true });
+        const monthDelays = res.data;
+        this.setState({ monthDelays });
+        console.log(res.data);
+        this.updateLineData();
+        monthDelaysDataLoaded = true;
+        this.setState({ visualizeData: true });
+      }) // re-direct to login on successful register
+      .catch(err => {
+        console.log(err.response.status === 404);
+        // if (err.response.status === 404) {
+        //   this.setState({ dataNotFound: true });
+        // }
+        // this.setState({ dataLoading: false });
+      });
+
+    axios
+      .post("/api/flights/dayDelays", userData)
+      .then(res => {
+        this.setState({ dataLoading: false, dataSuccess: true });
+        const dayDelays = res.data;
+        this.setState({ dayDelays });
+        console.log(res.data);
+
+        this.updateColumnData();
+        dayDelaysDataLoaded = true;
+      }) // re-direct to login on successful register
+      .catch(err => {
+        console.log(err.response.status === 404);
+        // if (err.response.status === 404) {
+        //   this.setState({ dataNotFound: true });
+        // }
+        // this.setState({ dataLoading: false });
+      });
   };
+
+  // reset form values and table
   resetForm = e => {
     e.preventDefault();
-    this.setState({ origin: "", destination: "", dataSuccess: false });
+    this.setState({
+      origin: "",
+      destination: "",
+      dataSuccess: false,
+      dataNotFound: false,
+      visualizeData: false,
+      selectedValue: ""
+    });
   };
-  // auto suggest
 
-  getPossibleOrigins = e => {
-    e.preventDefault();
-    if (this.state.destination) {
-      axios
-        .get("/api/flights/origin/" + getCity(this.state.destination))
-        .then(res => {
-          locations = res.data;
-          console.log(locations);
-        }) // re-direct to login on successful register
-        .catch(err => console.log(err));
-    }
-  };
-  getPossibleDestinations = e => {
-    e.preventDefault();
-    if (this.state.origin) {
-      axios
-        .get("/api/flights/origin/" + getCity(this.state.origin))
-        .then(res => {
-          locations = res.data;
-          console.log(res.data);
-        }) // re-direct to login on successful register
-        .catch(err => console.log(err));
-      this.setState({
-        startingDestination: false
-      });
-    }
-  };
+  // auto suggest/complete
+  // following functions handle input fields to show auto completion
 
   onOriginChange = (event, { newValue }) => {
     this.setState({
@@ -180,6 +533,7 @@ class Dashboard extends Component {
     });
   };
 
+  // get all locations at page start
   componentDidMount() {
     axios
       .get("/api/flights/locationDetail")
@@ -303,92 +657,70 @@ class Dashboard extends Component {
             </form>
           </div>
         </div>
-        {this.state.dataSuccess && (
+        {this.state.dataNotFound && (
           <div className="row">
             <div className="col s12 center-align">
-              <Paper styles={{ width: "100%" }}>
-                <div styles={{ maxHeight: 440, overflow: "auto" }}>
-                  <Table stickyHeader aria-label="sticky table">
-                    <TableHead>
-                      <TableRow>
-                        <TableCell
-                          key="radio"
-                          style={{ minWidth: 20 }}
-                        ></TableCell>
-                        {columns.map(column => (
-                          <TableCell
-                            key={column.id}
-                            align={column.align}
-                            style={{ minWidth: column.minWidth }}
-                          >
-                            {column.label}
-                          </TableCell>
-                        ))}
-                      </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      {this.state.flightStatus
-                        .slice(
-                          this.state.page * this.state.rowsPerPage,
-                          this.state.page * this.state.rowsPerPage +
-                            this.state.rowsPerPage
-                        )
-                        .map(carrier => {
-                          return (
-                            <TableRow
-                              hover
-                              role="checkbox"
-                              tabIndex={-1}
-                              key={carrier.Flight_Carrier_Id}
-                            >
-                              <TableCell padding="checkbox">
-                                <Radio
-                                  checked={
-                                    this.state.selectedValue ===
-                                    carrier.Flight_Carrier_Id
-                                  }
-                                  onClick={this.handleChange}
-                                  data-index={carrier.Flight_Carrier_Id}
-                                  value={carrier.Flight_Carrier_Id}
-                                  name="radio-button-demo"
-                                />
-                              </TableCell>
-                              {columns.map(column => {
-                                const value = carrier[column.id];
-                                return (
-                                  <TableCell
-                                    key={column.id}
-                                    align={column.align}
-                                  >
-                                    {column.format && typeof value === "number"
-                                      ? column.format(value)
-                                      : value}
-                                  </TableCell>
-                                );
-                              })}
-                            </TableRow>
-                          );
-                        })}
-                    </TableBody>
-                  </Table>
-                </div>
-                <TablePagination
-                  rowsPerPageOptions={[10, 25, 100]}
-                  component="div"
-                  count={this.state.flightStatus.length}
-                  rowsPerPage={this.state.rowsPerPage}
-                  page={this.state.page}
-                  backIconButtonProps={{
-                    "aria-label": "previous page"
-                  }}
-                  nextIconButtonProps={{
-                    "aria-label": "next page"
-                  }}
-                  onChangePage={this.handleChangePage}
-                  onChangeRowsPerPage={this.handleChangeRowsPerPage}
-                />
-              </Paper>
+              <h1>No flights found</h1>
             </div>
+          </div>
+        )}
+
+        {this.state.dataSuccess && (
+          <div className="row">
+            {this.state.flightStatus.map(carrier => {
+              return (
+                <div className="col s4 center-align">
+                  <Card
+                    style={{ minWidth: 275 }}
+                    key={carrier.Flight_Carrier_Id}
+                  >
+                    <CardContent>
+                      <Typography
+                        variant="h5"
+                        style={{ fontSize: 24 }}
+                        gutterBottom
+                      >
+                        {carrier.Carrier_Name}
+                      </Typography>
+
+                      <Typography>
+                        Delay: {carrier.Delay_Prob.toFixed(1)}%
+                      </Typography>
+                    </CardContent>
+                  </Card>
+                </div>
+              );
+            })}
+          </div>
+        )}
+        {this.state.visualizeData && (
+          <div id="chart">
+            <Chart
+              options={this.state.options}
+              series={this.state.series}
+              type="bar"
+              height="350"
+            />
+          </div>
+        )}
+        {this.state.visualizeData && (
+          <div id="chart">
+            <Chart
+              options={this.state.lineOptions}
+              series={this.state.lineSeries}
+              type="line"
+              height="350"
+            />
+          </div>
+        )}
+        {this.state.visualizeData && (
+          <div id="chart">
+            <Chart
+              options={this.state.columnOptions}
+              series={this.state.columnSeries}
+              type="bar"
+              height="350"
+            />
           </div>
         )}
       </div>
