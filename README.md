@@ -1,6 +1,6 @@
 # Flights Delay Information App
 
-A Node, Express, MySql, React app. Finds and displays information regarding delays from a specific origin to a destination of different flights defined by the user. All viusualizations created using Apex Charts. Also, includes authentication for user registration.
+A Node, Express, MySql, React app. Finds and displays information regarding delays from a specific origin to a destination of different flights defined by the user. All viusualizations created using Apex Charts.
 
 ## Flight Data
 
