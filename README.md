@@ -45,20 +45,30 @@ npm run dev
 
 ### HOME
 
+```
 ![](screenshots/home_flight_app.png)
+```
 
 ### REGISTER
 
+```
 ![](screenshots/register_flight_app.png)
+```
 
 ### LOGIN
 
+```
 ![](screenshots/login_flight_app.png)
+```
 
 ### DASHBOARD_1
 
+```
 ![](screenshots/dash_1_flight_app.png)
+```
 
 ### DASHBOARD_2
 
+```
 ![](screenshots/dash_2_flight_app.png)
+```
