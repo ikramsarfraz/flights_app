@@ -3,7 +3,6 @@ const express = require("express");
 const bodyParser = require("body-parser");
 const passport = require("passport");
 
-const customers = require("./routes/api/customers");
 const users = require("./routes/api/users");
 const flights = require("./routes/api/flights");
 
@@ -26,7 +25,6 @@ app.use(passport.initialize());
 require("./config/passport")(passport);
 
 // // Routes
-app.use("/api/customers", customers);
 app.use("/api/users", users);
 app.use("/api/flights", flights);
 
